@@ -11,8 +11,8 @@ from tkinter import Tk, scrolledtext, Button, messagebox
 from tkinter import filedialog as fd
 
 # Server address and port
-SERVER_ADDRESS = 'localhost'
-SERVER_PORT = 5000
+SERVER_ADDRESS = ''
+SERVER_PORT = 5117
 
 # GUI window for the server
 server_window = Tk()
@@ -25,6 +25,7 @@ text_box.pack()
 # Create a socket object
 client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+
 # Function to establish connection with client
 def start_server():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -36,11 +37,13 @@ def start_server():
         print(f"[{get_timestamp()}] Waiting for a connection...")
         connection, client_address = sock.accept()
         print(f"[{get_timestamp()}] Connection established between client {client_address} and server {SERVER_ADDRESS}")
-        messagebox.showinfo("Connection", f"Connection established between client {client_address} and server {SERVER_ADDRESS}")
+        messagebox.showinfo("Connection",
+                            f"Connection established between client {client_address} and server {SERVER_ADDRESS}")
 
         # Handle client in a separate thread
         client_thread = threading.Thread(target=handle_client, args=(connection, client_address))
         client_thread.start()
+
 
 # Function to handle client requests
 def handle_client(connection, client_address):
@@ -69,6 +72,7 @@ def handle_client(connection, client_address):
     connection.close()
     print(f"[{get_timestamp()}] Client {client_address} disconnected")
 
+
 # Function to save audio recording
 def save_audio_recording(data):
     timestamp = datetime.datetime.now().strftime("%H%M%S_%d%m%Y")
@@ -81,6 +85,7 @@ def save_audio_recording(data):
         file.setsampwidth(2)
         file.setframerate(44100)
         file.writeframes(data)
+
 
 # Function to transcribe audio using speech recognition
 def transcribe_audio():
@@ -99,6 +104,7 @@ def transcribe_audio():
         except sr.RequestError as e:
             print(f"[{get_timestamp()}] Error in Speech Recognition service: {e}")
 
+
 # Function to get the most recent audio file
 def get_recent_audio_file():
     if not os.path.exists("ReceivedAudioRecordings"):
@@ -108,6 +114,7 @@ def get_recent_audio_file():
         return None
     files.sort(key=lambda x: os.path.getmtime(os.path.join("ReceivedAudioRecordings", x)))
     return os.path.join("ReceivedAudioRecordings", files[-1])
+
 
 # Function for text-to-speech conversion
 def text_to_speech(text):
@@ -119,15 +126,19 @@ def text_to_speech(text):
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
 
+
 # Function to get timestamp in the specified format
 def get_timestamp():
     return datetime.datetime.now().strftime("%H:%M:%S_%d%b%y")
 
+
 # Button to browse and send .txt files
 def browse_and_send_text_files():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a Text File", filetypes=(("Text Files", "*.txt"), ("All Files", "*.*")))
+    file_path = fd.askopenfilename(initialdir="/", title="Select a Text File",
+                                   filetypes=(("Text Files", "*.txt"), ("All Files", "*.*")))
     if file_path:
         send_text_file(file_path)
+
 
 # Function to send a .txt file to the client
 def send_text_file(file_path):
@@ -136,11 +147,14 @@ def send_text_file(file_path):
     client_sock.sendall(data)
     messagebox.showinfo("File Sent", f"The file {os.path.basename(file_path)} has been sent to the client")
 
+
 # Button to browse and play .wav files
 def browse_and_play_audio_files():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a WAV File", filetypes=(("WAV Files", "*.wav"), ("All Files", "*.*")))
+    file_path = fd.askopenfilename(initialdir="/", title="Select a WAV File",
+                                   filetypes=(("WAV Files", "*.wav"), ("All Files", "*.*")))
     if file_path:
         play_audio_file(file_path)
+
 
 # Function to play a .wav file locally
 def play_audio_file(file_path):
@@ -150,11 +164,14 @@ def play_audio_file(file_path):
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
 
+
 # Button to browse and send canned text messages
 def browse_and_send_canned_messages():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a Text File", filetypes=(("Text Files", "*.txt"), ("All Files", "*.*")))
+    file_path = fd.askopenfilename(initialdir="/", title="Select a Text File",
+                                   filetypes=(("Text Files", "*.txt"), ("All Files", "*.*")))
     if file_path:
         send_canned_messages(file_path)
+
 
 # Function to send canned text messages to the client
 def send_canned_messages(file_path):
@@ -165,11 +182,14 @@ def send_canned_messages(file_path):
         client_sock.sendall(line.encode())
         time.sleep(2)  # Delay between sending messages
 
+
 # Button to browse and send canned audio recordings
 def browse_and_send_canned_audio():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a WAV File", filetypes=(("WAV Files", "*.wav"), ("All Files", "*.*")))
+    file_path = fd.askopenfilename(initialdir="/", title="Select a WAV File",
+                                   filetypes=(("WAV Files", "*.wav"), ("All Files", "*.*")))
     if file_path:
         send_canned_audio(file_path)
+
 
 # Function to send canned audio recordings to the client
 def send_canned_audio(file_path):
@@ -177,17 +197,21 @@ def send_canned_audio(file_path):
         data = file.read()
     client_sock.sendall(data)
 
+
 # Button to browse and send canned text files
 def browse_and_send_canned_text_files():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a Text File", filetypes=(("Text Files", "*.txt"), ("All Files", "*.*")))
+    file_path = fd.askopenfilename(initialdir="/", title="Select a Text File",
+                                   filetypes=(("Text Files", "*.txt"), ("All Files", "*.*")))
     if file_path:
         send_canned_text_file(file_path)
+
 
 # Function to send canned text files to the client
 def send_canned_text_file(file_path):
     with open(file_path, 'rb') as file:
         data = file.read()
     client_sock.sendall(data)
+
 
 # Button to get the most recent text files
 def get_recent_text_files():
@@ -201,28 +225,34 @@ def get_recent_text_files():
             text_files.append(file.read())
     return text_files
 
+
 # GUI button to browse and send text files
-button_browse_text = Button(server_window, text="Browse and Send Text File", command=browse_and_send_text_files)
+button_browse_text = Button(server_window, text="Send Text File", command=browse_and_send_text_files)
 button_browse_text.pack()
 
 # GUI button to browse and play audio files
-button_browse_audio = Button(server_window, text="Browse and Play Audio File", command=browse_and_play_audio_files)
+button_browse_audio = Button(server_window, text="Play Audio File", command=browse_and_play_audio_files)
 button_browse_audio.pack()
 
 # GUI button to browse and send canned messages
-button_browse_canned_messages = Button(server_window, text="Browse and Send Canned Messages", command=browse_and_send_canned_messages)
+button_browse_canned_messages = Button(server_window, text="Send Canned Messages",
+                                       command=browse_and_send_canned_messages)
 button_browse_canned_messages.pack()
 
 # GUI button to browse and send canned audio recordings
-button_browse_canned_audio = Button(server_window, text="Browse and Send Canned Audio", command=browse_and_send_canned_audio)
+button_browse_canned_audio = Button(server_window, text="Send Canned Audio",
+                                    command=browse_and_send_canned_audio)
 button_browse_canned_audio.pack()
 
 # GUI button to browse and send canned text files
-button_browse_canned_text = Button(server_window, text="Browse and Send Canned Text File", command=browse_and_send_canned_text_files)
+button_browse_canned_text = Button(server_window, text="Browse and Send Canned Text File",
+                                   command=browse_and_send_canned_text_files)
 button_browse_canned_text.pack()
 
 # GUI button to get the most recent text files
-button_get_recent_text_files = Button(server_window, text="Get Recent Text Files", command=lambda: messagebox.showinfo("Recent Text Files", "\n".join(get_recent_text_files())))
+button_get_recent_text_files = Button(server_window, text="Get Recent Text Files",
+                                      command=lambda: messagebox.showinfo("Recent Text Files",
+                                                                          "\n".join(get_recent_text_files())))
 button_get_recent_text_files.pack()
 
 # Start the server
