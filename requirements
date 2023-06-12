@@ -1,5 +1,23 @@
-Write me a python code with the following requirements
+Write me a python code with the following requirements python
 
-Server Side Code
+timestamp format in HH:MM:SS_DDMMMYY
 
-Client
+1. Server Side Code requires the following, with GUI, a separate window for server, and a separate window for client
+1a. server must establish a connection with client, when client and server is connected, print ("[time stamp] Connection between client [client ip address], and server [server ip address] is established"
+1b. server must be able to receive text messages from client, these text messages will be displayed on a GUI with "timestamp" before the message, server must have text to speech function,
+and speaks the message upon receiving message from clients. add a two second delay from receiving the message before playing it, file must be played on python natively
+1c. server must be able to receive and save audio recordings sent from the client side, and audio recordings will be saved in "/ReceivedAudioRecordings", if there is no such directory, create one.
+audio files are saved as timestamp_voice_recording.wav
+1d. server must have text to speech function that only runs locally, speech to text function runs natively on python code and is displayed on GUI upon receiving an audio file from client.
+get most recent .wav file based on date created
+1e. server must be able to receive .txt files from client, .txt files are saved in "/TranscribedText", if there's no such directory, create one. display 5 most recent .txt file content on GUI
+1f. server will have a directory '/CannedRecordings', if there is no such directory, create one.
+
+2. client side code requires the following, with GUI
+2a. client must be able to establish a connection with server, print("[time stamp] Connection between client [client ip address], and server [server ip address] is established"
+2b. client must be able to send text messages to the server, there is a textbox where user can input text messages and server side must be able to receive text messages with GUI
+2c. there is a "push to talk" button, when button is held, an audio recording is started and when the push to talk button is released, audio recording stops, and client sends the recorded audio to the server in "ReceivedAudioRecordings" folder.
+2d. client must have a locally run speech to text functionality, when audio recording in point 2c is completed, client side must transcribe the spoken text and send it to server side in "/TranscribedText" folder
+2e. client must a function that can remotely play files in "/CannedRecordings" folder in the server side, add 5 GUI buttons that can play files contained in "/CannedRecordings"
+
+Ensure the code has met all the requirements before showing it to me.
