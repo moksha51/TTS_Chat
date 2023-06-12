@@ -5,69 +5,91 @@ import os
 import wave
 import time
 import pygame
-import speech_recognition as sr
-from gtts import gTTS
-from tkinter import Tk, scrolledtext, Button, messagebox
+# import speech_recognition as sr
+# from gtts import gTTS
+from tkinter import Tk, scrolledtext, Button, messagebox, Entry
 from tkinter import filedialog as fd
 
 # Server address and port
-SERVER_ADDRESS = 'localhost'
-SERVER_PORT = 5000
+SEAHAWK_IP_ADDRESS = '192.168.0.92'
+SERVER_PORT = 40000
 
 # GUI window for the server
 server_window = Tk()
 server_window.title("Server")
 
+# Audio File Directories
+cannedrecordings = r'C:\Users\gray\Documents\XJ\Projects\Comms\ZyCraft_Audio\CannedRecordings'
+receiveaudiorecordings = r'C:\Users\gray\Documents\XJ\Projects\Comms\ZyCraft_Audio\ReceivedAudioRecordings'
+
+
 # Text box to display received text messages
-text_box = scrolledtext.ScrolledText(server_window, width=40, height=10)
+text_box = scrolledtext.ScrolledText(server_window, width=80, height=30)
 text_box.pack()
 
-# Create a socket object
-client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Function to establish connection with client
 def start_server():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = (SERVER_ADDRESS, SERVER_PORT)
-    sock.bind(server_address)
-    sock.listen(1)
+    try:
+        threading.Thread(target=handle_text_thread, daemon=True).start()
+
+    except socket.error as e:
+        print(f"Error: {e}")
+        exit(1)
+
+
+def handle_text_thread():
+    server_address = (SEAHAWK_IP_ADDRESS, SERVER_PORT)
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(server_address)
+    server_socket.listen(1)
+    print(f'[{datetime.datetime.now()}] Server started. Listening for connections...')
+    text_box.insert('end', f"[{get_timestamp()}] Connected to Client {server_address}\n")
 
     while True:
-        print(f"[{get_timestamp()}] Waiting for a connection...")
-        connection, client_address = sock.accept()
-        print(f"[{get_timestamp()}] Connection established between client {client_address} and server {SERVER_ADDRESS}")
-        messagebox.showinfo("Connection", f"Connection established between client {client_address} and server {SERVER_ADDRESS}")
+        client_sock, client_address = server_socket.accept()
+        print(f'Client is connected{client_address}')
+        threading.Thread(target=handle_client, args=(client_sock, client_address), daemon=True).start()
 
-        # Handle client in a separate thread
-        client_thread = threading.Thread(target=handle_client, args=(connection, client_address))
-        client_thread.start()
+
+def handle_push_to_talk_thread():
+    server_address = (SEAHAWK_IP_ADDRESS, SERVER_PORT)
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(server_address)
+    server_socket.listen(1)
+
+    while True:
+        client_sock, client_address = server_socket.accept()
+        text_box.insert('end', f'Ready to Receive Audio \n')
+        threading.Thread(target=handle_client, args=(client_sock, client_address), daemon=True).start()
+
 
 # Function to handle client requests
-def handle_client(connection, client_address):
+def handle_client(connection):
     while True:
         try:
             data = connection.recv(1024)
             if not data:
-                break
-
+                continue
             # Received text message
             text_message = data.decode()
-            print(f"[{get_timestamp()}] Received text message from {client_address}: {text_message}")
-            text_box.insert('end', f"[{get_timestamp()}] {text_message}\n")
-            text_to_speech(text_message)
-
+            text_box.insert('end', f" [{get_timestamp()}] {text_message}\n")
             # Delay before playing audio
             time.sleep(2)
 
-            # Received audio recording
-            if text_message.endswith(".wav"):
-                save_audio_recording(data)
-                transcribe_audio()
-        except:
+            # if text_message.endswith("_recording.wav"):
+            #     play_audio_recording()
+            #
+            # elif text_message.endswith("siren.wav"):
+            #     play_siren()
+            #
+            # elif text_message.endswith("hello.wav"):
+            #     play_canned_audio1()
+
+        except Exception as e:
+            print(e)
             break
 
-    connection.close()
-    print(f"[{get_timestamp()}] Client {client_address} disconnected")
 
 # Function to save audio recording
 def save_audio_recording(data):
@@ -82,22 +104,91 @@ def save_audio_recording(data):
         file.setframerate(44100)
         file.writeframes(data)
 
+
+# Function to send text message
+def send_text_message(connection, message):
+    try:
+        connection.sendall(message.encode())
+        text_box.insert('end', f" [{get_timestamp()}] {message}\n")
+    except ConnectionAbortedError:
+        messagebox.showerror("Error", "The connection was aborted by the server.")
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+
+def send_message():
+    message = input_box.get()
+    send_text_message(client_sock, message)
+    input_box.delete(0, 'end')
+
+def play_siren():
+    # Initialize Pygame
+    pygame.init()
+    # Load the media file
+    media_file = r"C:\Users\gray\Documents\XJ\Projects\Comms\ZyCraft_Audio\CannedRecordings\siren.wav"
+    pygame.mixer.music.load(media_file)
+
+    # Play the media file
+    pygame.mixer.music.play()
+
+    # Wait for the media file to finish playing
+    while pygame.mixer.music.get_busy():
+        continue
+
+    # Clean up resources
+    pygame.quit()
+
+def play_audio_recording():
+    # Initialize Pygame
+    pygame.init()
+    # Load the media file
+    media_file = r"C:\Users\gray\Documents\XJ\Projects\Comms\ZyCraft_Audio\CannedRecordings\hello.wav"
+    pygame.mixer.music.load(media_file)
+
+    # Play the media file
+    pygame.mixer.music.play()
+
+    # Wait for the media file to finish playing
+    while pygame.mixer.music.get_busy():
+        continue
+
+    # Clean up resources
+    pygame.quit()
+
+def play_canned_audio1():
+    # Initialize Pygame
+    pygame.init()
+    # Load the media file
+    media_file = r"C:\Users\gray\Documents\XJ\Projects\Comms\ZyCraft_Audio\CannedRecordings\hello.wav"
+    pygame.mixer.music.load(media_file)
+
+    # Play the media file
+    pygame.mixer.music.play()
+
+    # Wait for the media file to finish playing
+    while pygame.mixer.music.get_busy():
+        continue
+
+    # Clean up resources
+    pygame.quit()
+
 # Function to transcribe audio using speech recognition
-def transcribe_audio():
-    recent_file = get_recent_audio_file()
-    if recent_file:
-        r = sr.Recognizer()
-        with sr.AudioFile(recent_file) as source:
-            audio = r.record(source)
-        try:
-            text = r.recognize_google(audio)
-            print(f"[{get_timestamp()}] Transcribed text: {text}")
-            with open("TranscribedText/transcribed_text.txt", 'a') as file:
-                file.write(text + "\n")
-        except sr.UnknownValueError:
-            print(f"[{get_timestamp()}] Speech Recognition could not understand audio")
-        except sr.RequestError as e:
-            print(f"[{get_timestamp()}] Error in Speech Recognition service: {e}")
+# def transcribe_audio():
+#     recent_file = get_recent_audio_file()
+#     if recent_file:
+#         r = sr.Recognizer()
+#         with sr.AudioFile(recent_file) as source:
+#             audio = r.record(source)
+#         try:
+#             text = r.recognize_google(audio)
+#             print(f"[{get_timestamp()}] Transcribed text: {text}")
+#             with open("TranscribedText/transcribed_text.txt", 'a') as file:
+#                 file.write(text + "\n")
+#         except sr.UnknownValueError:
+#             print(f"[{get_timestamp()}] Speech Recognition could not understand audio")
+#         # except sr.RequestError as e:e
+#         #     print(f"[{get_timestamp()}] Error in Speech Recognition service: {e}")
+
 
 # Function to get the most recent audio file
 def get_recent_audio_file():
@@ -109,38 +200,21 @@ def get_recent_audio_file():
     files.sort(key=lambda x: os.path.getmtime(os.path.join("ReceivedAudioRecordings", x)))
     return os.path.join("ReceivedAudioRecordings", files[-1])
 
+
 # Function for text-to-speech conversion
-def text_to_speech(text):
-    tts = gTTS(text)
-    tts.save("temp_audio.mp3")
-    pygame.mixer.init()
-    pygame.mixer.music.load("temp_audio.mp3")
-    pygame.mixer.music.play()
-    while pygame.mixer.music.get_busy():
-        pygame.time.Clock().tick(10)
+# def text_to_speech(text):
+#     tts = gTTS(text)
+#     tts.save("temp_audio.mp3")
+#     pygame.mixer.init()
+#     pygame.mixer.music.load("temp_audio.mp3")
+#     pygame.mixer.music.play()
+#     while pygame.mixer.music.get_busy():
+#         pygame.time.Clock().tick(10)
+
 
 # Function to get timestamp in the specified format
 def get_timestamp():
     return datetime.datetime.now().strftime("%H:%M:%S_%d%b%y")
-
-# Button to browse and send .txt files
-def browse_and_send_text_files():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a Text File", filetypes=(("Text Files", "*.txt"), ("All Files", "*.*")))
-    if file_path:
-        send_text_file(file_path)
-
-# Function to send a .txt file to the client
-def send_text_file(file_path):
-    with open(file_path, 'rb') as file:
-        data = file.read()
-    client_sock.sendall(data)
-    messagebox.showinfo("File Sent", f"The file {os.path.basename(file_path)} has been sent to the client")
-
-# Button to browse and play .wav files
-def browse_and_play_audio_files():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a WAV File", filetypes=(("WAV Files", "*.wav"), ("All Files", "*.*")))
-    if file_path:
-        play_audio_file(file_path)
 
 # Function to play a .wav file locally
 def play_audio_file(file_path):
@@ -150,83 +224,21 @@ def play_audio_file(file_path):
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
 
-# Button to browse and send canned text messages
-def browse_and_send_canned_messages():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a Text File", filetypes=(("Text Files", "*.txt"), ("All Files", "*.*")))
-    if file_path:
-        send_canned_messages(file_path)
 
-# Function to send canned text messages to the client
-def send_canned_messages(file_path):
-    with open(file_path, 'r') as file:
-        lines = file.readlines()
+# GUI input box for sending messages
+input_box = Entry(server_window, width=80)
+input_box.pack()
 
-    for line in lines:
-        client_sock.sendall(line.encode())
-        time.sleep(2)  # Delay between sending messages
-
-# Button to browse and send canned audio recordings
-def browse_and_send_canned_audio():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a WAV File", filetypes=(("WAV Files", "*.wav"), ("All Files", "*.*")))
-    if file_path:
-        send_canned_audio(file_path)
-
-# Function to send canned audio recordings to the client
-def send_canned_audio(file_path):
-    with open(file_path, 'rb') as file:
-        data = file.read()
-    client_sock.sendall(data)
-
-# Button to browse and send canned text files
-def browse_and_send_canned_text_files():
-    file_path = fd.askopenfilename(initialdir="/", title="Select a Text File", filetypes=(("Text Files", "*.txt"), ("All Files", "*.*")))
-    if file_path:
-        send_canned_text_file(file_path)
-
-# Function to send canned text files to the client
-def send_canned_text_file(file_path):
-    with open(file_path, 'rb') as file:
-        data = file.read()
-    client_sock.sendall(data)
-
-# Button to get the most recent text files
-def get_recent_text_files():
-    text_files = []
-    if not os.path.exists("TranscribedText"):
-        return text_files
-    files = os.listdir("TranscribedText")
-    files.sort(key=lambda x: os.path.getmtime(os.path.join("TranscribedText", x)), reverse=True)
-    for file in files[:5]:
-        with open(os.path.join("TranscribedText", file), 'r') as file:
-            text_files.append(file.read())
-    return text_files
-
-# GUI button to browse and send text files
-button_browse_text = Button(server_window, text="Browse and Send Text File", command=browse_and_send_text_files)
-button_browse_text.pack()
-
-# GUI button to browse and play audio files
-button_browse_audio = Button(server_window, text="Browse and Play Audio File", command=browse_and_play_audio_files)
-button_browse_audio.pack()
-
-# GUI button to browse and send canned messages
-button_browse_canned_messages = Button(server_window, text="Browse and Send Canned Messages", command=browse_and_send_canned_messages)
-button_browse_canned_messages.pack()
-
-# GUI button to browse and send canned audio recordings
-button_browse_canned_audio = Button(server_window, text="Browse and Send Canned Audio", command=browse_and_send_canned_audio)
-button_browse_canned_audio.pack()
-
-# GUI button to browse and send canned text files
-button_browse_canned_text = Button(server_window, text="Browse and Send Canned Text File", command=browse_and_send_canned_text_files)
-button_browse_canned_text.pack()
-
-# GUI button to get the most recent text files
-button_get_recent_text_files = Button(server_window, text="Get Recent Text Files", command=lambda: messagebox.showinfo("Recent Text Files", "\n".join(get_recent_text_files())))
-button_get_recent_text_files.pack()
+# GUI button_push_to_talk to send messages
+button_send = Button(server_window, text="Send", command=lambda: send_text_message(), args =)
+button_send.pack()
 
 # Start the server
 start_server()
+
+# Establish connection with the server
+server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_sock.connect((SEAHAWK_IP_ADDRESS, SERVER_PORT))
 
 # Run the server GUI window
 server_window.mainloop()
